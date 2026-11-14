@@ -1,0 +1,180 @@
+[
+  {
+    "name": "aliases",
+    "routes": [
+      {
+        "path": "/tree",
+        "body": {
+          "root": "authorized",
+          "generation": "g1",
+          "entries": [
+            {
+              "path": "a.txt",
+              "kind": "file",
+              "object": "o1",
+              "version": "v1"
+            },
+            {
+              "path": "project/b.txt",
+              "kind": "file",
+              "object": "o1",
+              "version": "v1"
+            },
+            {
+              "path": "loop",
+              "kind": "link",
+              "target": "."
+            },
+            {
+              "path": "outside",
+              "kind": "link",
+              "target": "../private"
+            }
+          ],
+          "clear": true
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/object/o1?version=v1",
+        "body": {
+          "text": "bearing inspection"
+        },
+        "status": 200,
+        "method": "GET"
+      }
+    ],
+    "expected": [
+      {
+        "object": "o1",
+        "aliases": [
+          "a.txt",
+          "project/b.txt"
+        ]
+      }
+    ],
+    "forbidden": [],
+    "maximumRequests": 12,
+    "prohibitedRequests": [
+      "/private",
+      "/object/../private"
+    ]
+  },
+  {
+    "name": "replaced",
+    "routes": [
+      {
+        "path": "/tree",
+        "body": {
+          "root": "authorized",
+          "generation": "g2",
+          "entries": [
+            {
+              "path": "a.txt",
+              "kind": "file",
+              "object": "o1",
+              "version": "v1"
+            }
+          ],
+          "clear": true
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/object/o1?version=v1",
+        "body": {
+          "error": "changed"
+        },
+        "status": 412,
+        "method": "GET"
+      }
+    ],
+    "expected": [],
+    "forbidden": [
+      {
+        "path": "a.txt",
+        "text": "bearing inspection"
+      }
+    ]
+  },
+  {
+    "name": "nested-membership",
+    "routes": [
+      {
+        "path": "/tree",
+        "body": {
+          "root": "authorized",
+          "generation": "g3",
+          "entries": [
+            {
+              "path": "project",
+              "kind": "dir",
+              "object": "dir1",
+              "version": "v1"
+            },
+            {
+              "path": "alias",
+              "kind": "link",
+              "target": "project"
+            }
+          ],
+          "clear": true
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/directory?path=project",
+        "body": {
+          "entries": [
+            {
+              "path": "project/a.txt",
+              "kind": "file",
+              "object": "o2",
+              "version": "v1"
+            }
+          ],
+          "clear": true
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/directory?path=alias",
+        "body": {
+          "entries": [
+            {
+              "path": "alias/a.txt",
+              "kind": "file",
+              "object": "o2",
+              "version": "v1"
+            }
+          ],
+          "clear": true
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/object/o2?version=v1",
+        "body": {
+          "text": "deck record"
+        },
+        "status": 200,
+        "method": "GET"
+      }
+    ],
+    "expected": [
+      {
+        "object": "o2",
+        "aliases": [
+          "alias/a.txt",
+          "project/a.txt"
+        ]
+      }
+    ],
+    "forbidden": []
+  }
+]
