@@ -25,6 +25,10 @@ export async function openArchive(directory) {
   if (state.schema !== 1 || !Array.isArray(state.records) || !Array.isArray(state.evidence)) {
     throw new Error('资料索引版本或结构无效');
   }
+  if (state.membership !== undefined &&
+      (state.membership === null || typeof state.membership !== 'object' || Array.isArray(state.membership))) {
+    throw new Error('资料索引归属账本结构无效');
+  }
   for (const item of state.evidence) {
     if (!/^[a-f0-9]{64}$/.test(item.hash)) throw new Error('资料索引摘要无效');
     if (digest(await readFile(join(directory, 'raw', item.hash))) !== item.hash) throw new Error('原文摘要不匹配');
@@ -38,7 +42,7 @@ export async function openArchive(directory) {
       if (digest(bytes) !== hash) throw new Error('原文损坏');
       return bytes;
     },
-    commit({records = [], exchanges = [], issues = []}) {
+    commit({records = [], exchanges = [], issues = [], membership} = {}) {
       const operation = tail.then(async () => {
         const next = structuredClone(state);
         for (const exchange of exchanges) {
@@ -56,6 +60,7 @@ export async function openArchive(directory) {
           }
         }
         next.issues.push(...structuredClone(issues));
+        if (membership !== undefined) next.membership = structuredClone(membership);
         await atomicWrite(indexPath, JSON.stringify(next, null, 2) + '\n');
         state = next;
         return structuredClone(state);
